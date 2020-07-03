@@ -3,7 +3,6 @@ The official codes for paper "Deep hash learning for remote sensing image retrie
 
 ## Install dependencies
   numpy
-  tqdm
   opencv-python
   torch
   torchvision
