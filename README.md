@@ -13,10 +13,10 @@ We conduct the experiments on three data sets, including [UC Merced](http://weeg
 All the configurations are in `trainerAndHash.py`, and you can modify them by your needs.
 
 ### train the model
-    ``` python trainerAndHash.py --phase=0```
+    python trainerAndHash.py --phase=0
 
 ### extract hash codes
-    ``` python trainerAndHash.py --phase=1```
+    python trainerAndHash.py --phase=1
     
 ### calculate the (mean average precision) mAP value
-    ``` python trainerAndHash.py --phase=2```
+    python trainerAndHash.py --phase=2
