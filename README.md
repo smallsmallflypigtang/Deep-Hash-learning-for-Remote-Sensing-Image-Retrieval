@@ -12,11 +12,13 @@ We conduct the experiments on three data sets, including [UC Merced](http://weeg
 ## Training
 All the configurations are in `trainerAndHash.py`, and you can modify them by your needs.
 
-### train the model
+#### train the model
     python trainerAndHash.py --phase=0
 
-### extract hash codes
+#### extract hash codes
     python trainerAndHash.py --phase=1
     
-### calculate the (mean average precision) mAP value
+    the path of codes can be modified the line about "parser.add_argument('--codes_dir', default=root + '/codes', type=str)" in trainerAndHash.py
+    
+#### calculate the (mean average precision) mAP value
     python trainerAndHash.py --phase=2
