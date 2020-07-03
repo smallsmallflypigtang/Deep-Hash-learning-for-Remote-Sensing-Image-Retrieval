@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
 from models.Net import AlexNet, Uniform_D
-from dataset.data import MyCustomDataset
+from dataset.customData import MyCustomDataset
 from loss.contrast import Contrast_Loss, Quantization_Loss
 import numpy as np
-from progress.bar import Bar
 from torch.autograd import Variable
 from torchvision import transforms
 from torch.utils.data import DataLoader
@@ -42,7 +41,7 @@ def train(args):
 
     G = AlexNet(num_classes=args.label_dim, Kbits=args.Kbits)
     G = G.cuda().float()
-    state_dict = load_preweights(args.initialized)
+    state_dict = load_preweights(G, args.initialized)
     G.load_state_dict(state_dict)
 
     crossentropy = nn.CrossEntropyLoss()
@@ -74,39 +73,42 @@ def train(args):
         with tqdm(trainloader, desc=description) as iterator:
             for i, (data, target) in enumerate(iterator):
                 data, target = data.cuda(), target.cuda()
-                gap_softmax, softmax, hash_codes, fc1 = G(data)
+                gap_softmax, softmax, hash_codes = G(data)
 
                 # ----------------------- calculate the total loss for hash learning ---------------------------
                 loss_images_softmax = crossentropy(softmax, target)
                 loss_gap_softmax = crossentropy(gap_softmax, target)
                 quan = quantization(hash_codes)
                 hinge = contrast(hash_codes, target)
-                loss = hinge + args.alpha * loss_images_softmax + args.gamma * loss_gap_softmax + args.theta * quan
-
-                optimizer_G.zero_grad()
-                loss.backward(retain_graph=True)
-                optimizer_G.step()
+                hash_loss = hinge + args.alpha * loss_images_softmax + args.gamma * loss_gap_softmax + args.theta * quan
 
                 # ------------------------------- generate and adversarial stage -------------------------------
                 # ------------------------------- training the generate
-                g_loss = adversarial_loss(D(hash_codes), valid)
+                g_loss = 0
                 if step % 5 == 0:
-                    optimizer_G.zero_grad()
-                    g_loss.backward()
-                    optimizer_G.step()
+                    g_loss = adversarial_loss(D(hash_codes), valid)
+
+                loss = hash_loss + g_loss
+                optimizer_G.zero_grad()
+                loss.backward()
+                optimizer_G.step()
+
                 # ------------------------------- training the discriminator
-                real_binary_data = generate_binary_distribution(data.size(0),
-                                                                dim=args.Kbits)
-                real_binary = Variable(torch.from_numpy(real_binary_data).type(
-                    torch.FloatTensor),
-                                       requires_grad=False).cuda()
-                real_loss = adversarial_loss(D(real_binary), valid)
-                fake_loss = adversarial_loss(D(hash_codes.detach()), fake)
-                d_loss = real_loss + fake_loss
                 if epoch < 2:
+                    real_binary_data = generate_binary_distribution(
+                        data.size(0), dim=args.Kbits)
+                    real_binary = Variable(
+                        torch.from_numpy(real_binary_data).type(
+                            torch.FloatTensor),
+                        requires_grad=False).cuda()
+                    real_loss = adversarial_loss(D(real_binary), valid)
+                    fake_loss = adversarial_loss(D(hash_codes.detach()), fake)
+                    d_loss = real_loss + fake_loss
+
                     optimizer_D.zero_grad()
                     d_loss.backward()
                     optimizer_D.step()
+
                 # ------------------------ displaying the loss value during training ---------------------------
                 hash_softmax_correct = calculate_classification_accuracy(
                     softmax, target) / target.size(0)
@@ -123,14 +125,14 @@ def train(args):
             with tqdm(testloader, desc=description) as iterator:
                 for i, (data, target) in enumerate(iterator):
                     data, target = data.cuda(), target.cuda()
-                    gap_softmax, softmax, hash_codes, fc1 = G(data)
+                    gap_softmax, softmax, hash_codes = G(data)
 
                     # ------------------------ displaying the classification accuracy in testing data ---------------------------
                     accumulated_hash_classification += calculate_classification_accuracy(
                         softmax, target)
                     accumulated_gap_classification += calculate_classification_accuracy(
                         gap_softmax, target)
-                    accumulated_number += data.size(0)
+                    accumulated_number = accumulated_number + data.size(0)
 
                     information = "Testing, Hash codes classification {:.2f}, cam classification {:.2f}".format(
                         accumulated_hash_classification / accumulated_number,

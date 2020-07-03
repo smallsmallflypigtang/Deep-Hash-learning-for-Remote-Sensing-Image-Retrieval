@@ -39,9 +39,9 @@ class AlexNet(nn.Module):
         flatten = flatten.view(flatten.size(0), -1)
         fc1 = self.fc1(flatten)
         fc2 = self.fc2(fc1)
-        hash_code = torch.sigmoid(self.hash_layer(fc2))
-        hash_softmax = self.hash_classifier(hash_code)
-        return gap_softmax, hash_softmax, hash_code, fc1
+        code = torch.sigmoid(self.hash_layer(fc2))
+        softmax = self.hash_classifier(code)
+        return gap_softmax, softmax, code
 
 
 class CAM(nn.Module):
