@@ -17,8 +17,7 @@ All the configurations are in `trainerAndHash.py`, and you can modify them by yo
 
 #### extract hash codes
     python trainerAndHash.py --phase=1
-    
-    the path of codes can be modified the line about "parser.add_argument('--codes_dir', default=root + '/codes', type=str)" in trainerAndHash.py
+   the path of codes can be modified the line about "parser.add_argument('--codes_dir', default=root + '/codes', type=str)" in trainerAndHash.py
     
 #### calculate the (mean average precision) mAP value
     python trainerAndHash.py --phase=2
